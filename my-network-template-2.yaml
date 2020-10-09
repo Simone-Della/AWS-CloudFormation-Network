@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: VPC in London
+Resources:
+  MyVPC:
+    Type: AWS::EC2::VPC
+    DeletionPolicy: Retain # Policy to not delete this resource
+    Properties:
+      CidrBlock: "10.50.0.0/16"
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: mark-4-vpc-cf
+        - Key: Environment
+          Value: Testing
+  MySubnet2a:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-west-2a
+      CidrBlock: "10.50.1.0/24"
+      Tags:
+        - Key: Name
+          Value: sub-1-pub-mark-4-vpc-cf
+      VpcId: !Ref MyVPC
+  MyRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref MyVPC
+  MySubnet2aRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref MyRouteTable
+      SubnetId: !Ref MySubnet2a
+  MyInternetGateway:
+    Type: AWS::EC2::InternetGateway
+  MyGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref MyInternetGateway
+      VpcId: !Ref MyVPC
+  MyDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: MyGatewayAttachment
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref MyInternetGateway
+      RouteTableId: !Ref MyRouteTable
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow icmp and ssh from internet
+      VpcId: !Ref MyVPC
+      SecurityGroupIngress:
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: Sg-mark-4-cf
